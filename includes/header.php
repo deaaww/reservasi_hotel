@@ -21,7 +21,7 @@
             <div class="col-md-2 px-0 sidebar">
                 <div class="brand-title">
                     <h4><i class="bi bi-buildings-fill me-"></i>Giggle Suites</h4>
-                    <small class="text-white">Luxury Hotel Management</small>
+                    <small class="text-white">Management Hotel</small>
                 </div>
                 
                 <nav class="nav flex-column">

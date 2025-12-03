@@ -5,8 +5,12 @@ $top_guests = [];
 $revenue_by_type = [];
 $error = null;
 
-// Get laporan okupansi from view
+// VARIABEL TAMBAHAN UNTUK SUMMARY CARD LUNAS
+$total_lunas_bulan_ini = 0; 
+
+// Get laporan okupansi dari view
 try {
+    // 1. Ambil data laporan okupansi bulanan
     $stmt = $conn->query("
         SELECT * FROM v_laporan_okupansi 
         ORDER BY bulan DESC
@@ -14,7 +18,19 @@ try {
     ");
     $laporan_okupansi = $stmt->fetchAll();
     
-    // Get top guests
+    // 2. Ambil total pendapatan berdasarkan pembayaran LUNAS bulan ini
+    // Logika: Jumlahkan semua kolom jumlah_bayar dari tabel pembayaran yang lunas di bulan ini (NOW())
+    $lunas_stmt = $conn->query("
+        SELECT 
+            SUM(p.jumlah) 
+        FROM pembayaran p
+        WHERE p.status_bayar = 'lunas'
+        AND date_trunc('month', p.tgl_bayar) = date_trunc('month', NOW());
+    ");
+    // Gunakan fetchColumn() karena hanya mengambil 1 nilai
+    $total_lunas_bulan_ini = $lunas_stmt->fetchColumn() ?? 0;
+    
+    // 3. Get top guests
     $top_guests_stmt = $conn->query("
         SELECT 
             t.nama_tamu,
@@ -34,7 +50,7 @@ try {
     ");
     $top_guests = $top_guests_stmt->fetchAll();
     
-    // Get revenue by room type
+    // 4. Get revenue by room type
     $revenue_by_type_stmt = $conn->query("
         SELECT 
             tk.nama_tipe,
@@ -60,22 +76,21 @@ try {
 
 <?php if ($error): ?>
 <div class="alert alert-danger alert-dismissible fade show">
-    <i class="bi bi-exclamation-triangle me-2"></i>
-    <?php echo htmlspecialchars($error); ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <?php echo htmlspecialchars($error); ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 <?php endif; ?>
 
-<!-- Summary Cards -->
 <div class="row g-4 mb-4">
     <?php
-    $total_revenue = 0;
+    $total_revenue = $total_lunas_bulan_ini; // MENGAMBIL TOTAL LUNAS SEKARANG
     $total_bookings = 0;
     $avg_okupansi = 0;
     
+    // Gunakan Laporan Okupansi untuk Total Booking dan Okupansi (data yang tidak janggal)
     if (!empty($laporan_okupansi)) {
         $current_month = $laporan_okupansi[0];
-        $total_revenue = $current_month['total_pendapatan'] ?? 0;
         $total_bookings = $current_month['total_reservasi'] ?? 0;
         $avg_okupansi = $current_month['tingkat_okupansi'] ?? 0;
     }
@@ -84,7 +99,7 @@ try {
     <div class="col-md-4">
         <div class="card stat-card">
             <div class="card-body">
-                <h6 class="text-muted mb-2">Pendapatan Bulan Ini</h6>
+                <h6 class="text-muted mb-2">Pendapatan Bulan Ini (Lunas)</h6>
                 <h3 class="mb-0 text-success"><?php echo format_rupiah($total_revenue); ?></h3>
             </div>
         </div>
@@ -93,7 +108,7 @@ try {
     <div class="col-md-4">
         <div class="card stat-card">
             <div class="card-body">
-                <h6 class="text-muted mb-2">Total Booking Bulan Ini</h6>
+                <h6 class="text-muted mb-2">Total Booking Bulan Ini (Okupansi)</h6>
                 <h3 class="mb-0 text-primary"><?php echo $total_bookings; ?></h3>
             </div>
         </div>
@@ -109,10 +124,9 @@ try {
     </div>
 </div>
 
-<!-- Laporan Okupansi Bulanan -->
 <div class="card table-card mb-4">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Laporan Okupansi per Bulan</h5>
+        <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Laporan Okupansi per Bulan (Berdasarkan Check-in)</h5>
     </div>
     <div class="card-body">
         <?php if (!empty($laporan_okupansi)): ?>
@@ -125,7 +139,7 @@ try {
                             <th>Kamar Terpakai</th>
                             <th>Total Kamar</th>
                             <th>Tingkat Okupansi</th>
-                            <th>Total Pendapatan</th>
+                            <th>Total Pendapatan (Okupansi)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -152,7 +166,7 @@ try {
                             <td>
                                 <div class="progress" style="height: 20px;">
                                     <div class="progress-bar bg-info" role="progressbar" 
-                                         style="width: <?php echo min($lap['tingkat_okupansi'] ?? 0, 100); ?>%">
+                                            style="width: <?php echo min($lap['tingkat_okupansi'] ?? 0, 100); ?>%">
                                         <?php echo number_format($lap['tingkat_okupansi'] ?? 0, 2); ?>%
                                     </div>
                                 </div>
@@ -193,7 +207,6 @@ try {
     </div>
 </div>
 
-<!-- Top Guests -->
 <div class="row g-4 mb-4">
     <div class="col-md-6">
         <div class="card table-card">
@@ -247,7 +260,7 @@ try {
     <div class="col-md-6">
         <div class="card table-card">
             <div class="card-header bg-warning text-dark">
-                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Pendapatan per Tipe Kamar</h5>
+                <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Pendapatan per Tipe Kamar (Okupansi)</h5>
             </div>
             <div class="card-body">
                 <?php if (!empty($revenue_by_type)): ?>
@@ -292,7 +305,6 @@ try {
     </div>
 </div>
 
-<!-- Export Options -->
 <div class="card table-card">
     <div class="card-body text-center">
         <h5 class="mb-3">Export Laporan</h5>

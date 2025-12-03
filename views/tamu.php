@@ -77,7 +77,7 @@ try {
     
     $params[] = $records_per_page;
     $params[] = $offset;
-    $stmt = $conn->prepare("SELECT * FROM tamu $where ORDER BY nama_tamu LIMIT ? OFFSET ?");
+    $stmt = $conn->prepare("SELECT * FROM tamu $where ORDER BY id_tamu ASC LIMIT ? OFFSET ?");
     $stmt->execute($params);
     $tamu_list = $stmt->fetchAll();
 } catch (PDOException $e) {

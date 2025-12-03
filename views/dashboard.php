@@ -1,3 +1,47 @@
+<?php
+$stats = [];
+
+$sql = "
+SELECT
+    -- total kamar
+    (SELECT COUNT(*) FROM kamar) AS total_kamar,
+
+    -- kamar terisi (berdasarkan reservasi check-in)
+    (SELECT COUNT(DISTINCT id_kamar)
+     FROM reservasi
+     WHERE status_reservasi = 'check-in'
+    ) AS kamar_terisi,
+
+    -- tamu check-in
+    (SELECT COUNT(*)
+     FROM reservasi
+     WHERE status_reservasi = 'check-in'
+    ) AS tamu_checkin,
+
+    -- total tamu
+    (SELECT COUNT(*) FROM tamu) AS total_tamu,
+
+    -- reservasi pending
+    (SELECT COUNT(*)
+     FROM reservasi
+     WHERE status_reservasi = 'pending'
+    ) AS reservasi_pending,
+
+    -- reservasi confirmed
+    (SELECT COUNT(*)
+     FROM reservasi
+     WHERE status_reservasi = 'confirmed'
+    ) AS reservasi_confirmed
+";
+
+$stmt = $conn->query($sql);
+$stats = $stmt->fetch(PDO::FETCH_ASSOC);
+
+//hitung kamar tersedia
+$stats['kamar_tersedia'] =
+    ($stats['total_kamar'] ?? 0) - ($stats['kamar_terisi'] ?? 0);
+?>
+
 <h1 class="page-title">Dashboard</h1>
 
 <div class="row g-4 mb-4">

@@ -17,9 +17,6 @@ try {
         LIMIT 12
     ");
     $laporan_okupansi = $stmt->fetchAll();
-
-    echo json_encode($laporan_okupansi);
-
     
     // 2. Ambil total pendapatan berdasarkan pembayaran LUNAS bulan ini
     // Logika: Jumlahkan semua kolom jumlah_bayar dari tabel pembayaran yang lunas di bulan ini (NOW())

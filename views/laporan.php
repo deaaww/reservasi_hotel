@@ -45,8 +45,8 @@ try {
         JOIN tipe_kamar tk ON k.id_tipe = tk.id_tipe
         WHERE r.status_reservasi IN ('check-in', 'selesai')
         GROUP BY t.id_tamu, t.nama_tamu, t.no_telp, t.email
+        HAVING COUNT(r.id_reservasi) > 1
         ORDER BY total_reservasi DESC
-        LIMIT 10
     ");
     $top_guests = $top_guests_stmt->fetchAll();
     

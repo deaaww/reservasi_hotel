@@ -17,6 +17,9 @@ try {
         LIMIT 12
     ");
     $laporan_okupansi = $stmt->fetchAll();
+
+    echo json_encode($laporan_okupansi);
+
     
     // 2. Ambil total pendapatan berdasarkan pembayaran LUNAS bulan ini
     // Logika: Jumlahkan semua kolom jumlah_bayar dari tabel pembayaran yang lunas di bulan ini (NOW())
@@ -154,8 +157,11 @@ try {
                                         '07' => 'Juli', '08' => 'Agustus', '09' => 'September',
                                         '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
                                     );
-                                    $bulan = date('m', strtotime($lap['bulan'] ?? 'now'));
-                                    $tahun = date('Y', strtotime($lap['bulan'] ?? 'now'));
+
+                                    $dt = new DateTime($lap['bulan'], new DateTimeZone('Asia/Jakarta'));
+                                    $bulan = $dt->format('m');
+                                    $tahun = $dt->format('Y');
+
                                     echo $bulan_indo[$bulan] . ' ' . $tahun;
                                     ?>
                                 </strong>

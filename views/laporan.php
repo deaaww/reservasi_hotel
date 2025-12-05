@@ -311,18 +311,17 @@ try {
 <div class="card table-card">
     <div class="card-body text-center">
         <h5 class="mb-3">Export Laporan</h5>
-        <button class="btn btn-success me-2" onclick="window.print()">
+        <button class="btn btn-success me-2" onclick="fiturBelumTersedia()">
             <i class="bi bi-printer me-2"></i>Print Laporan
         </button>
-        <button class="btn btn-primary" onclick="exportToCSV()">
+        <button class="btn btn-primary" onclick="fiturBelumTersedia()">
             <i class="bi bi-download me-2"></i>Export to CSV
         </button>
     </div>
 </div>
 
 <script>
-function exportToCSV() {
-    alert('Fitur export CSV akan segera tersedia!');
-    // Implementasi export CSV
+function fiturBelumTersedia() {
+    alert('Fitur ini masih dalam tahap pengembangan.');
 }
 </script>

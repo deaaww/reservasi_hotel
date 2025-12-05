@@ -14,20 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
         $tgl_checkout = sanitize_input($_POST['tgl_checkout']);
         $jumlah_tamu = sanitize_input($_POST['jumlah_tamu']);
         
-        // Check room availability using function
-        $check_stmt = $conn->prepare("SELECT cek_ketersediaan_kamar(?, ?::date, ?::date) as available");
-        $check_stmt->execute([$id_kamar, $tgl_checkin, $tgl_checkout]);
-        $availability = $check_stmt->fetch();
-        
-        if (!$availability['available']) {
-            throw new Exception("Kamar tidak tersedia untuk tanggal yang dipilih!");
-        }
-        
-        // Validate dates
-        if (strtotime($tgl_checkout) <= strtotime($tgl_checkin)) {
-            throw new Exception("Tanggal checkout harus setelah tanggal checkin!");
-        }
-        
         // Insert reservasi
         $stmt = $conn->prepare("
             INSERT INTO reservasi (id_tamu, id_kamar, tgl_checkin, tgl_checkout, jumlah_tamu, status_reservasi, tgl_reservasi)
@@ -36,8 +22,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
         ");
         $stmt->execute([$id_tamu, $id_kamar, $tgl_checkin, $tgl_checkout, $jumlah_tamu]);
         $id_reservasi = $stmt->fetch()['id_reservasi'];
+
+        // SIMULASI ERROR / TEST ROLLBACK
+        throw new Exception("Transaksi dipaksa gagal!");
         
-        // Calculate total using function
+        // Hitung total
         $total_stmt = $conn->prepare("SELECT hitung_total_reservasi(?) as total");
         $total_stmt->execute([$id_reservasi]);
         $total = $total_stmt->fetch()['total'];
@@ -98,7 +87,7 @@ try {
                 <h5 class="mb-0"><i class="bi bi-calendar-plus me-2"></i>Form Reservasi</h5>
             </div>
             <div class="card-body">
-                <form method="POST" id="reservasiForm" onsubmit="return validateReservasi()">
+                <form method="POST" id="reservasiForm">
                     <div class="mb-4">
                         <h6 class="text-primary mb-3">
                             <i class="bi bi-person-circle me-2"></i>Data Tamu
@@ -303,35 +292,7 @@ function calculateTotal() {
     }
 }
 
-function validateReservasi() {
-    const tamu = document.getElementById('id_tamu').value;
-    const kamar = document.getElementById('id_kamar').value;
-    const checkin = document.getElementById('tgl_checkin').value;
-    const checkout = document.getElementById('tgl_checkout').value;
-    const jumlahTamu = parseInt(document.getElementById('jumlah_tamu').value);
-    
-    if (!tamu || !kamar || !checkin || !checkout) {
-        alert('Semua field harus diisi!');
-        return false;
-    }
-    
-    const date1 = new Date(checkin);
-    const date2 = new Date(checkout);
-    
-    if (date2 <= date1) {
-        alert('Tanggal checkout harus setelah tanggal checkin!');
-        return false;
-    }
-    
-    const select = document.getElementById('id_kamar');
-    const option = select.options[select.selectedIndex];
-    const kapasitas = parseInt(option.getAttribute('data-kapasitas'));
-    
-    if (jumlahTamu > kapasitas) {
-        alert('Jumlah tamu melebihi kapasitas kamar! Kapasitas maksimal: ' + kapasitas + ' orang');
-        return false;
-    }
-    
-    return confirm('Apakah data reservasi sudah benar?');
+function validateReservasi() {   
+    return true;
 }
 </script>

@@ -78,7 +78,7 @@ try {
     $data_sql = "
         SELECT * FROM v_reservasi_detail 
         $where_clause
-        ORDER BY tgl_reservasi DESC
+        ORDER BY tgl_checkin DESC
         LIMIT $records_per_page OFFSET $offset
     ";
     

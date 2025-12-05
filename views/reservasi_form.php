@@ -22,9 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
         ");
         $stmt->execute([$id_tamu, $id_kamar, $tgl_checkin, $tgl_checkout, $jumlah_tamu]);
         $id_reservasi = $stmt->fetch()['id_reservasi'];
-
-        // SIMULASI ERROR / TEST ROLLBACK
-        throw new Exception("Transaksi dipaksa gagal!");
         
         // Hitung total
         $total_stmt = $conn->prepare("SELECT hitung_total_reservasi(?) as total");

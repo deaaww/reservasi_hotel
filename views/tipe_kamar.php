@@ -11,7 +11,7 @@ function upload_foto($file_input_name, $old_file = null) {
     }
 
     if (!isset($_FILES[$file_input_name]) || $_FILES[$file_input_name]['error'] == 4) {
-        return $old_file; // tidak upload baru
+        return $old_file;
     }
 
     $file = $_FILES[$file_input_name];
@@ -31,7 +31,6 @@ function upload_foto($file_input_name, $old_file = null) {
         }
         return $new_name;
     }
-
     return null;
 }
 
@@ -43,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
         $kapasitas = sanitize_input($_POST['kapasitas']);
         $deskripsi = sanitize_input($_POST['deskripsi']);
 
-        // upload foto
         $foto = upload_foto('foto_file');
 
         if ($foto === null) {
@@ -58,7 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
 
             $new_id = $conn->lastInsertId();
 
-            // Insert fasilitas
             if (!empty($_POST['fasilitas'])) {
                 foreach ($_POST['fasilitas'] as $f) {
                     $conn->prepare("INSERT INTO tipe_fasilitas (id_tipe, id_fasilitas) VALUES (?, ?)")
@@ -85,18 +82,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
         $kapasitas = sanitize_input($_POST['kapasitas']);
         $deskripsi = sanitize_input($_POST['deskripsi']);
 
-        // get old photo
-        $stmt = $conn->prepare("SELECT foto_url FROM tipe_kamar WHERE id_tipe = ?");
+        $stmt = $conn->prepare("SELECT foto_url FROM tipe_kamar WHERE id_tipe=?");
         $stmt->execute([$id]);
         $old_photo = $stmt->fetchColumn();
 
-        // upload foto baru (jika ada)
         $foto = upload_foto('foto_file', $old_photo);
 
         if ($foto === null && isset($_FILES['foto_file']) && $_FILES['foto_file']['error'] != 4) {
             $message = "Gagal upload foto!";
             $message_type = "danger";
         } else {
+
             $stmt = $conn->prepare("
                 UPDATE tipe_kamar
                 SET nama_tipe=?, harga_per_malam=?, kapasitas=?, deskripsi=?, foto_url=?
@@ -104,7 +100,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
             ");
             $stmt->execute([$nama, $harga, $kapasitas, $deskripsi, $foto, $id]);
 
-            // update fasilitas
             $conn->prepare("DELETE FROM tipe_fasilitas WHERE id_tipe=?")->execute([$id]);
 
             if (!empty($_POST['fasilitas'])) {
@@ -128,7 +123,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
 if (isset($_GET['action'], $_GET['id']) && $_GET['action'] == 'delete') {
     $id = $_GET['id'];
 
-    // delete foto
     $stmt = $conn->prepare("SELECT foto_url FROM tipe_kamar WHERE id_tipe=?");
     $stmt->execute([$id]);
     $foto = $stmt->fetchColumn();
@@ -149,6 +143,7 @@ $edit = null;
 $selected_fasilitas = [];
 
 if (isset($_GET['action']) && $_GET['action'] == 'edit') {
+
     $stmt = $conn->prepare("SELECT * FROM tipe_kamar WHERE id_tipe=?");
     $stmt->execute([$_GET['id']]);
     $edit = $stmt->fetch();
@@ -160,7 +155,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit') {
 
 $fasilitas = $conn->query("SELECT * FROM fasilitas ORDER BY kategori, nama_fasilitas")->fetchAll();
 $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fetchAll();
-
 ?>
 
 <h2 class="page-title">Tipe Kamar</h2>
@@ -226,6 +220,7 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
                                 <input type="checkbox" class="form-check-input"
                                     name="fasilitas[]" value="<?= $f['id_fasilitas'] ?>"
                                     <?= in_array($f['id_fasilitas'], $selected_fasilitas) ? 'checked' : '' ?>>
+
                                 <label class="form-check-label"><?= $f['nama_fasilitas'] ?></label>
                             </div>
                         </div>
@@ -249,19 +244,42 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
 <?php foreach ($tipe_list as $t): ?>
     <div class="col-md-4">
         <div class="card h-100">
+
             <?php if ($t['foto_url']): ?>
-                <img src="uploads/tipe_kamar/<?= $t['foto_url'] ?>" class="card-img-top" height="160" style="object-fit: cover;">
+                <img src="uploads/tipe_kamar/<?= $t['foto_url'] ?>" 
+                     class="card-img-top" height="160" style="object-fit: cover;">
             <?php endif; ?>
 
             <div class="card-body">
                 <h5><?= $t['nama_tipe'] ?></h5>
-                <p class="text-muted"><?= format_rupiah($t['harga_per_malam']) ?> / malam</p>
+
+                <p class="text-muted">
+                    <?= format_rupiah($t['harga_per_malam']) ?> / malam
+                </p>
+
                 <p><?= $t['deskripsi'] ?></p>
+
+                <!-- ===== FASILITAS (DITAMBAHKAN DI SINI) ===== -->
+                <?php
+                    $fs = $conn->prepare("
+                        SELECT nama_fasilitas 
+                        FROM tipe_fasilitas tf 
+                        JOIN fasilitas f ON tf.id_fasilitas = f.id_fasilitas 
+                        WHERE tf.id_tipe=?
+                    ");
+                    $fs->execute([$t['id_tipe']]);
+                    $fasil_list = $fs->fetchAll(PDO::FETCH_COLUMN);
+                ?>
+
+                <?php if (!empty($fasil_list)): ?>
+                    <p><strong>Fasilitas:</strong> <?= implode(', ', $fasil_list) ?></p>
+                <?php endif; ?>
+                <!-- =============================================== -->
 
                 <a href="?page=tipe_kamar&action=edit&id=<?= $t['id_tipe'] ?>" 
                    class="btn btn-warning btn-sm">Edit</a>
 
-                <a onclick="return confirm('Hapus tipe kamar ini?')"
+                <a onclick="return confirm('Hapus tipe kamar ini?')" 
                    href="?page=tipe_kamar&action=delete&id=<?= $t['id_tipe'] ?>" 
                    class="btn btn-danger btn-sm">Hapus</a>
             </div>
@@ -271,5 +289,5 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
 </div>
 
 <?php if (count($tipe_list) == 0): ?>
-<div class="alert alert-info text-center">Belum ada data tipe kamar</div>
+    <div class="alert alert-info text-center">Belum ada data tipe kamar</div>
 <?php endif; ?>

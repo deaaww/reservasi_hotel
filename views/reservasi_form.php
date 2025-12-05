@@ -22,9 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
         ");
         $stmt->execute([$id_tamu, $id_kamar, $tgl_checkin, $tgl_checkout, $jumlah_tamu]);
         $id_reservasi = $stmt->fetch()['id_reservasi'];
-
-        // SIMULASI ERROR / TEST ROLLBACK
-        throw new Exception("Transaksi dipaksa gagal!");
         
         // Hitung total
         $total_stmt = $conn->prepare("SELECT hitung_total_reservasi(?) as total");
@@ -217,30 +214,6 @@ try {
                         <i class="bi bi-info-circle me-1"></i>
                         Status pembayaran awal: <strong>Belum Lunas</strong>
                     </small>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card table-card mt-3">
-            <div class="card-body">
-                <h6 class="mb-3"><i class="bi bi-list-check me-2"></i>Checklist:</h6>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="check1">
-                    <label class="form-check-label" for="check1">
-                        Data tamu sudah benar
-                    </label>
-                </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="check2">
-                    <label class="form-check-label" for="check2">
-                        Tanggal sudah sesuai
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="check3">
-                    <label class="form-check-label" for="check3">
-                        Total pembayaran sudah dicek
-                    </label>
                 </div>
             </div>
         </div>

@@ -44,7 +44,7 @@ try {
         JOIN tamu t ON r.id_tamu = t.id_tamu
         JOIN kamar k ON r.id_kamar = k.id_kamar
         $where
-        ORDER BY p.tgl_bayar DESC NULLS LAST, p.id_pembayaran DESC
+        ORDER BY p.status_bayar DESC NULLS LAST, p.id_pembayaran DESC
         LIMIT 50
     ");
     $stmt->execute($params);

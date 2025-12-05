@@ -144,13 +144,6 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
                 <textarea class="form-control" name="deskripsi" rows="3"><?php echo $edit_data ? $edit_data['deskripsi'] : ''; ?></textarea>
             </div>
             
-            <div class="mb-3">
-                <label class="form-label">URL Foto</label>
-                <input type="text" class="form-control" name="foto_url" 
-                    value="<?php echo $edit_data ? $edit_data['foto_url'] : ''; ?>" 
-                    placeholder="/img/nama-foto.jpg">
-            </div>
-            
             <?php if ($edit_data): ?>
                 <input type="hidden" name="id_tipe" value="<?php echo $edit_data['id_tipe']; ?>">
                 <button type="submit" name="update" class="btn btn-primary">

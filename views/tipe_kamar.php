@@ -4,7 +4,7 @@ $message_type = '';
 
 /* upload foto */
 function upload_foto($file_input_name, $old_file = null) {
-    $target_dir = "uploads/tipe_kamar/";
+    $target_dir = "img/";
 
     if (!is_dir($target_dir)) {
         mkdir($target_dir, 0777, true);
@@ -127,8 +127,8 @@ if (isset($_GET['action'], $_GET['id']) && $_GET['action'] == 'delete') {
     $stmt->execute([$id]);
     $foto = $stmt->fetchColumn();
 
-    if ($foto && file_exists("uploads/tipe_kamar/" . $foto)) {
-        @unlink("uploads/tipe_kamar/" . $foto);
+    if ($foto && file_exists("img/" . $foto)) {
+    @unlink("img/" . $foto);
     }
 
     $conn->prepare("DELETE FROM tipe_fasilitas WHERE id_tipe=?")->execute([$id]);
@@ -205,7 +205,7 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
                 <input type="file" name="foto_file" accept=".jpg,.png,.jpeg,.webp" class="form-control">
 
                 <?php if ($edit && $edit['foto_url']): ?>
-                    <img src="uploads/tipe_kamar/<?= $edit['foto_url'] ?>" 
+                    <img src="/reservasi_hotel<?= $edit['foto_url'] ?>"
                          class="mt-2 rounded" width="150">
                 <?php endif; ?>
             </div>
@@ -246,8 +246,8 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
         <div class="card h-100">
 
             <?php if ($t['foto_url']): ?>
-                <img src="uploads/tipe_kamar/<?= $t['foto_url'] ?>" 
-                     class="card-img-top" height="160" style="object-fit: cover;">
+                <img src="/reservasi_hotel<?= $t['foto_url'] ?>"
+                     class="card-img-top" height="280" style="object-fit: cover;">
             <?php endif; ?>
 
             <div class="card-body">

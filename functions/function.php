@@ -19,7 +19,7 @@ function format_tanggal($tanggal) {
     return $pecah[2] . ' ' . $bulan[(int)$pecah[1]] . ' ' . $pecah[0];
 }
 
-function get_status_badge($status) {
+function status_badge($status) {
     $badges = [
         'tersedia' => 'success',
         'terisi' => 'danger',

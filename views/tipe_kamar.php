@@ -2,7 +2,7 @@
 $message = '';
 $message_type = '';
 
-/* upload foto */
+//upload foto
 function upload_foto($file_input_name, $old_file = null) {
     $target_dir = "img/";
 
@@ -34,7 +34,7 @@ function upload_foto($file_input_name, $old_file = null) {
     return null;
 }
 
-/* create */
+//create
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
     try {
         $nama = sanitize_input($_POST['nama_tipe']);
@@ -42,105 +42,94 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
         $kapasitas = sanitize_input($_POST['kapasitas']);
         $deskripsi = sanitize_input($_POST['deskripsi']);
 
-        $foto = upload_foto('foto_file');
+        $foto = null;
+        if (isset($_FILES['foto_file']) && $_FILES['foto_file']['error'] == 0) {
+            $ext = pathinfo($_FILES['foto_file']['name'], PATHINFO_EXTENSION);
+            $nama_file = time() . "_" . rand(1000,9999) . "." . $ext;
 
-        if ($foto === null) {
-            $message = "Gagal mengupload foto! Pastikan format JPG/PNG/WEBP.";
-            $message_type = "danger";
-        } else {
-            $stmt = $conn->prepare("
-                INSERT INTO tipe_kamar (nama_tipe, harga_per_malam, kapasitas, deskripsi, foto_url)
-                VALUES (?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([$nama, $harga, $kapasitas, $deskripsi, $foto]);
+            $tujuan = "img/" . $nama_file;
 
-            $new_id = $conn->lastInsertId();
-
-            if (!empty($_POST['fasilitas'])) {
-                foreach ($_POST['fasilitas'] as $f) {
-                    $conn->prepare("INSERT INTO tipe_fasilitas (id_tipe, id_fasilitas) VALUES (?, ?)")
-                         ->execute([$new_id, $f]);
-                }
+            if (move_uploaded_file($_FILES['foto_file']['tmp_name'], $tujuan)) {
+                $foto = $nama_file;
             }
-
-            $message = "Tipe kamar berhasil ditambahkan!";
-            $message_type = "success";
         }
 
-    } catch (PDOException $e) {
+        $stmt = $conn->prepare("
+            INSERT INTO tipe_kamar (nama_tipe, harga_per_malam, kapasitas, deskripsi, foto_url)
+            VALUES (?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$nama, $harga, $kapasitas, $deskripsi, $foto]);
+
+        $new_id = $conn->lastInsertId();
+
+        if (!empty($_POST['fasilitas'])) {
+            foreach ($_POST['fasilitas'] as $f) {
+                $conn->prepare("INSERT INTO tipe_fasilitas (id_tipe, id_fasilitas) VALUES (?, ?)")
+                     ->execute([$new_id, $f]);
+            }
+        }
+
+        $message = "Tipe kamar berhasil ditambahkan!";
+        $message_type = "success";
+
+    } catch (Exception $e) {
         $message = $e->getMessage();
         $message_type = "danger";
     }
 }
 
-/* update */
+//update
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
     try {
         $id = $_POST['id_tipe'];
+
         $nama = sanitize_input($_POST['nama_tipe']);
         $harga = sanitize_input($_POST['harga_per_malam']);
         $kapasitas = sanitize_input($_POST['kapasitas']);
         $deskripsi = sanitize_input($_POST['deskripsi']);
 
+        //foto lama
         $stmt = $conn->prepare("SELECT foto_url FROM tipe_kamar WHERE id_tipe=?");
         $stmt->execute([$id]);
-        $old_photo = $stmt->fetchColumn();
+        $old = $stmt->fetch();
 
-        $foto = upload_foto('foto_file', $old_photo);
+        //foto baru
+        $foto = $old['foto_url'];
+        if (isset($_FILES['foto_file']) && $_FILES['foto_file']['error'] == 0) {
+            $foto = upload_foto('foto_file', $old['foto_url']);
+        }
+        
+        $stmt = $conn->prepare("
+            UPDATE tipe_kamar 
+            SET nama_tipe=?, harga_per_malam=?, kapasitas=?, deskripsi=?, foto_url=?
+            WHERE id_tipe=?
+        ");
+        $stmt->execute([$nama, $harga, $kapasitas, $deskripsi, $foto, $id]);
 
-        if ($foto === null && isset($_FILES['foto_file']) && $_FILES['foto_file']['error'] != 4) {
-            $message = "Gagal upload foto!";
-            $message_type = "danger";
-        } else {
+        $conn->prepare("DELETE FROM tipe_fasilitas WHERE id_tipe=?")->execute([$id]);
 
-            $stmt = $conn->prepare("
-                UPDATE tipe_kamar
-                SET nama_tipe=?, harga_per_malam=?, kapasitas=?, deskripsi=?, foto_url=?
-                WHERE id_tipe=?
-            ");
-            $stmt->execute([$nama, $harga, $kapasitas, $deskripsi, $foto, $id]);
-
-            $conn->prepare("DELETE FROM tipe_fasilitas WHERE id_tipe=?")->execute([$id]);
-
-            if (!empty($_POST['fasilitas'])) {
-                foreach ($_POST['fasilitas'] as $f) {
-                    $conn->prepare("INSERT INTO tipe_fasilitas (id_tipe, id_fasilitas) VALUES (?, ?)")
-                         ->execute([$id, $f]);
-                }
+        if (!empty($_POST['fasilitas'])) {
+            foreach ($_POST['fasilitas'] as $f) {
+                $conn->prepare("INSERT INTO tipe_fasilitas (id_tipe, id_fasilitas) VALUES (?, ?)")
+                     ->execute([$id, $f]);
             }
-
-            $message = "Tipe kamar berhasil diperbarui!";
-            $message_type = "success";
         }
 
-    } catch (PDOException $e) {
+        $message = "Tipe kamar berhasil diperbarui!";
+        $message_type = "success";
+
+        header("Location: ?page=tipe_kamar&updated=1");
+        exit;
+
+    } catch(Exception $e) {
         $message = $e->getMessage();
         $message_type = "danger";
     }
 }
 
-/* delete */
-if (isset($_GET['action'], $_GET['id']) && $_GET['action'] == 'delete') {
-    $id = $_GET['id'];
-
-    $stmt = $conn->prepare("SELECT foto_url FROM tipe_kamar WHERE id_tipe=?");
-    $stmt->execute([$id]);
-    $foto = $stmt->fetchColumn();
-
-    if ($foto && file_exists("img/" . $foto)) {
-    @unlink("img/" . $foto);
-    }
-
-    $conn->prepare("DELETE FROM tipe_fasilitas WHERE id_tipe=?")->execute([$id]);
-    $conn->prepare("DELETE FROM tipe_kamar WHERE id_tipe=?")->execute([$id]);
-
-    $message = "Tipe kamar berhasil dihapus!";
-    $message_type = "success";
-}
-
-/* read */
+//read
 $edit = null;
-$selected_fasilitas = [];
+$pilih_fasilitas = [];
 
 if (isset($_GET['action']) && $_GET['action'] == 'edit') {
 
@@ -150,7 +139,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit') {
 
     $stmt = $conn->prepare("SELECT id_fasilitas FROM tipe_fasilitas WHERE id_tipe=?");
     $stmt->execute([$_GET['id']]);
-    $selected_fasilitas = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $pilih_fasilitas = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
 $fasilitas = $conn->query("SELECT * FROM fasilitas ORDER BY kategori, nama_fasilitas")->fetchAll();
@@ -159,6 +148,13 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
 
 <h2 class="page-title">Tipe Kamar</h2>
 
+<?php 
+if (isset($_GET['updated']) && $_GET['updated'] == 1) {
+    $message = "Tipe kamar berhasil diperbarui!";
+    $message_type = "success";
+}
+?>
+
 <?php if ($message): ?>
 <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
     <?= $message ?>
@@ -166,30 +162,30 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
 </div>
 <?php endif; ?>
 
-<!-- ========================= FORM TAMBAH / EDIT ========================= -->
+<!-- form -->
 <div class="card mb-4">
     <div class="card-header">
         <strong><?= $edit ? "Edit Tipe Kamar" : "Tambah Tipe Kamar" ?></strong>
     </div>
 
     <div class="card-body">
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" novalidate>
 
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Nama Tipe *</label>
+                    <label class="form-label">Nama Tipe</label>
                     <input type="text" required name="nama_tipe" class="form-control"
                         value="<?= $edit['nama_tipe'] ?? '' ?>">
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Harga per Malam *</label>
+                    <label class="form-label">Harga per Malam</label>
                     <input type="number" name="harga_per_malam" class="form-control"
                         value="<?= $edit['harga_per_malam'] ?? '' ?>" required>
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label">Kapasitas *</label>
+                    <label class="form-label">Kapasitas</label>
                     <input type="number" name="kapasitas" class="form-control"
                         value="<?= $edit['kapasitas'] ?? 2 ?>" required>
                 </div>
@@ -204,9 +200,15 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
                 <label class="form-label">Foto Kamar</label>
                 <input type="file" name="foto_file" accept=".jpg,.png,.jpeg,.webp" class="form-control">
 
-                <?php if ($edit && $edit['foto_url']): ?>
-                    <img src="/reservasi_hotel<?= $edit['foto_url'] ?>"
-                         class="mt-2 rounded" width="150">
+                <?php if ($edit && $edit['foto_url']): 
+                    $foto = $edit['foto_url'];
+                    if (str_contains($foto, 'img/')) {
+                        $path = "/reservasi_hotel/" . ltrim($foto, '/');
+                    } else {
+                        $path = "/reservasi_hotel/img/" . $foto;
+                    }
+                ?>
+                    <img src="<?= $path ?>" class="mt-2 rounded" width="150">
                 <?php endif; ?>
             </div>
 
@@ -219,7 +221,7 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
                             <div class="form-check">
                                 <input type="checkbox" class="form-check-input"
                                     name="fasilitas[]" value="<?= $f['id_fasilitas'] ?>"
-                                    <?= in_array($f['id_fasilitas'], $selected_fasilitas) ? 'checked' : '' ?>>
+                                    <?= in_array($f['id_fasilitas'], $pilih_fasilitas) ? 'checked' : '' ?>>
 
                                 <label class="form-check-label"><?= $f['nama_fasilitas'] ?></label>
                             </div>
@@ -239,15 +241,21 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
     </div>
 </div>
 
-<!-- ========================= LIST CARD ========================= -->
+<!-- list card -->
 <div class="row g-4">
 <?php foreach ($tipe_list as $t): ?>
     <div class="col-md-4">
         <div class="card h-100">
 
-            <?php if ($t['foto_url']): ?>
-                <img src="/reservasi_hotel<?= $t['foto_url'] ?>"
-                     class="card-img-top" height="280" style="object-fit: cover;">
+            <?php if ($t['foto_url']): 
+                $foto = $t['foto_url'];
+                if (str_contains($foto, 'img/')) {
+                    $path = "/reservasi_hotel/" . ltrim($foto, '/');
+                } else {
+                    $path = "/reservasi_hotel/img/" . $foto;
+                }
+            ?>
+                <img src="<?= $path ?>" class="card-img-top" height="280" style="object-fit: cover;">
             <?php endif; ?>
 
             <div class="card-body">
@@ -259,7 +267,7 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
 
                 <p><?= $t['deskripsi'] ?></p>
 
-                <!-- ===== FASILITAS (DITAMBAHKAN DI SINI) ===== -->
+                <!-- fasilitas -->
                 <?php
                     $fs = $conn->prepare("
                         SELECT nama_fasilitas 
@@ -274,7 +282,6 @@ $tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fet
                 <?php if (!empty($fasil_list)): ?>
                     <p><strong>Fasilitas:</strong> <?= implode(', ', $fasil_list) ?></p>
                 <?php endif; ?>
-                <!-- =============================================== -->
 
                 <a href="?page=tipe_kamar&action=edit&id=<?= $t['id_tipe'] ?>" 
                    class="btn btn-warning btn-sm">Edit</a>

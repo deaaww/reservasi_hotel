@@ -5,7 +5,7 @@ define('DB_NAME', 'reservasi_hotel');
 define('DB_USER', 'postgres');
 define('DB_PASS', '121205');
 
-class Database {
+class database {
     private $conn;
     
     public function connect() {

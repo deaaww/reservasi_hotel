@@ -2,19 +2,17 @@
 $message = '';
 $message_type = '';
 
-// Handle Form Submission with Transaction
+//proses form 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
     try {
         $conn->beginTransaction();
-        
-        // Validate inputs
+
         $id_tamu = sanitize_input($_POST['id_tamu']);
         $id_kamar = sanitize_input($_POST['id_kamar']);
         $tgl_checkin = sanitize_input($_POST['tgl_checkin']);
         $tgl_checkout = sanitize_input($_POST['tgl_checkout']);
         $jumlah_tamu = sanitize_input($_POST['jumlah_tamu']);
         
-        // Insert reservasi
         $stmt = $conn->prepare("
             INSERT INTO reservasi (id_tamu, id_kamar, tgl_checkin, tgl_checkout, jumlah_tamu, status_reservasi, tgl_reservasi)
             VALUES (?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
@@ -23,12 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
         $stmt->execute([$id_tamu, $id_kamar, $tgl_checkin, $tgl_checkout, $jumlah_tamu]);
         $id_reservasi = $stmt->fetch()['id_reservasi'];
         
-        // Hitung total
+        //hitung total
         $total_stmt = $conn->prepare("SELECT hitung_total_reservasi(?) as total");
         $total_stmt->execute([$id_reservasi]);
         $total = $total_stmt->fetch()['total'];
         
-        // Insert pembayaran
         $stmt = $conn->prepare("
             INSERT INTO pembayaran (id_reservasi, jumlah, status_bayar)
             VALUES (?, ?, 'belum lunas')
@@ -47,12 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
     }
 }
 
-// Get available rooms
 try {
-    $available_rooms = $conn->query("SELECT * FROM v_kamar_tersedia ORDER BY nama_tipe, nomor_kamar")->fetchAll();
+    //kamar
+    $kamar_tersedia = $conn->query("SELECT * FROM v_kamar_tersedia ORDER BY nama_tipe, nomor_kamar")->fetchAll();
     
-    // Get all guests
-    $guests = $conn->query("SELECT * FROM tamu ORDER BY nama_tamu")->fetchAll();
+    //tamu
+    $tamu = $conn->query("SELECT * FROM tamu ORDER BY nama_tamu")->fetchAll();
     
 } catch (PDOException $e) {
     $error = $e->getMessage();
@@ -61,13 +58,12 @@ try {
 
 <h1 class="page-title">Buat Reservasi Baru</h1>
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="?page=dashboard">Home</a></li>
-        <li class="breadcrumb-item"><a href="?page=reservasi">Reservasi</a></li>
-        <li class="breadcrumb-item active">Buat Reservasi</li>
-    </ol>
-</nav>
+<div class="btn-group btn-group-sm mb-3">
+    <a href="?page=dashboard" class="btn btn-light">Home</a>
+    <a href="?page=reservasi" class="btn btn-light">Reservasi</a>
+    <button class="btn btn-secondary" disabled>Buat Reservasi</button>
+</div>
+
 
 <?php if ($message): ?>
 <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show" role="alert">
@@ -91,12 +87,13 @@ try {
                         </h6>
                         
                         <div class="mb-3">
-                            <label class="form-label">Pilih Tamu <span class="text-danger">*</span></label>
-                            <select class="form-select" name="id_tamu" id="id_tamu" required>
+                            <label class="form-label">Pilih Tamu</label>
+                            <select class="form-select" name="id_tamu" id="id_tamu"
+                            >
                                 <option value="">-- Pilih Tamu --</option>
-                                <?php foreach ($guests as $guest): ?>
-                                <option value="<?php echo $guest['id_tamu']; ?>">
-                                    <?php echo $guest['nama_tamu']; ?> - <?php echo $guest['no_telp']; ?>
+                                <?php foreach ($tamu as $tamu): ?>
+                                <option value="<?php echo $tamu['id_tamu']; ?>">
+                                    <?php echo $tamu['nama_tamu']; ?> - <?php echo $tamu['no_telp']; ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
@@ -104,9 +101,9 @@ try {
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label">Jumlah Tamu <span class="text-danger">*</span></label>
+                            <label class="form-label">Jumlah Tamu</label>
                             <input type="number" class="form-control" name="jumlah_tamu" id="jumlah_tamu" 
-                                min="1" max="10" value="1" required>
+                                min="1" max="10" value="1">
                         </div>
                     </div>
                     
@@ -118,16 +115,16 @@ try {
                         </h6>
                         
                         <div class="mb-3">
-                            <label class="form-label">Kamar <span class="text-danger">*</span></label>
-                            <select class="form-select" name="id_kamar" id="id_kamar" required onchange="updateRoomInfo()">
+                            <label class="form-label">Kamar</label>
+                            <select class="form-select" name="id_kamar" id="id_kamar" onchange="updateInfoKamar()">
                                 <option value="">-- Pilih Kamar --</option>
-                                <?php foreach ($available_rooms as $room): ?>
-                                <option value="<?php echo $room['id_kamar']; ?>" 
-                                    data-tipe="<?php echo $room['nama_tipe']; ?>"
-                                    data-harga="<?php echo $room['harga_per_malam']; ?>"
-                                    data-kapasitas="<?php echo $room['kapasitas']; ?>">
-                                    <?php echo $room['nomor_kamar']; ?> - <?php echo $room['nama_tipe']; ?> 
-                                    (<?php echo format_rupiah($room['harga_per_malam']); ?>/malam)
+                                <?php foreach ($kamar_tersedia as $kamar): ?>
+                                <option value="<?php echo $kamar['id_kamar']; ?>" 
+                                    data-tipe="<?php echo $kamar['nama_tipe']; ?>"
+                                    data-harga="<?php echo $kamar['harga_per_malam']; ?>"
+                                    data-kapasitas="<?php echo $kamar['kapasitas']; ?>">
+                                    <?php echo $kamar['nomor_kamar']; ?> - <?php echo $kamar['nama_tipe']; ?> 
+                                    (<?php echo format_rupiah($kamar['harga_per_malam']); ?>/malam)
                                 </option>
                                 <?php endforeach; ?>
                             </select>
@@ -151,17 +148,17 @@ try {
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Check-in <span class="text-danger">*</span></label>
+                                    <label class="form-label">Check-in</label>
                                     <input type="date" class="form-control" name="tgl_checkin" id="tgl_checkin" 
-                                        min="<?php echo date('Y-m-d'); ?>" required onchange="calculateTotal()">
+                                        min="<?php echo date('Y-m-d'); ?>" onchange="hitungTotal()">
                                 </div>
                             </div>
                             
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Check-out <span class="text-danger">*</span></label>
+                                    <label class="form-label">Check-out</label>
                                     <input type="date" class="form-control" name="tgl_checkout" id="tgl_checkout" 
-                                        min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" required onchange="calculateTotal()">
+                                        min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>" onchange="hitungTotal()">
                                 </div>
                             </div>
                         </div>
@@ -221,7 +218,7 @@ try {
 </div>
 
 <script>
-function updateRoomInfo() {
+function updateInfoKamar() {
     const select = document.getElementById('id_kamar');
     const option = select.options[select.selectedIndex];
     
@@ -235,13 +232,13 @@ function updateRoomInfo() {
         document.getElementById('infoKapasitas').textContent = 'Kapasitas: ' + kapasitas + ' orang';
         document.getElementById('roomInfo').classList.remove('d-none');
         
-        calculateTotal();
+        hitungTotal();
     } else {
         document.getElementById('roomInfo').classList.add('d-none');
     }
 }
 
-function calculateTotal() {
+function hitungTotal() {
     const select = document.getElementById('id_kamar');
     const option = select.options[select.selectedIndex];
     const checkin = document.getElementById('tgl_checkin').value;
@@ -263,9 +260,5 @@ function calculateTotal() {
             document.getElementById('displayTotal').textContent = formatRupiah(total);
         }
     }
-}
-
-function validateReservasi() {   
-    return true;
 }
 </script>

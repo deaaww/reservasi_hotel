@@ -1,18 +1,16 @@
 <?php
 session_start();
 require_once 'config/database.php';
-require_once 'functions/helpers.php';
+require_once 'functions/function.php';
 
 $db = new Database();
 $conn = $db->connect();
 
-// Get page parameter
-$page = isset($_GET['page']) ? sanitize_input($_GET['page']) : 'dashboard';
+$hal = isset($_GET['hal']) ? sanitize_input($_GET['hal']) : 'dashboard';
 
-// Get statistics for dashboard
-if ($page == 'dashboard') {
+//statistik dashboard
+if ($hal == 'dashboard') {
     try {
-        // Refresh materialized view
         $conn->exec("REFRESH MATERIALIZED VIEW mv_statistik_hotel");
         
         $stmt = $conn->query("SELECT * FROM mv_statistik_hotel");
@@ -22,11 +20,9 @@ if ($page == 'dashboard') {
     }
 }
 
-// Include header
 include 'includes/header.php';
 
-// Route to different pages
-switch($page) {
+switch($hal) {
     case 'dashboard':
         include 'views/dashboard.php';
         break;
@@ -58,9 +54,8 @@ switch($page) {
         include 'views/laporan.php';
         break;
     default:
-        echo "<h2>Page not found</h2>";
+        echo "<h2>page not found</h2>";
 }
 
-// Include footer
 include 'includes/footer.php';
 ?>

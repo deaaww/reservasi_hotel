@@ -1,16 +1,13 @@
 <?php
-// Initialize variables
 $laporan_okupansi = [];
-$top_guests = [];
-$revenue_by_type = [];
+$top_tamu = [];
+$pendapatan_per_tipe = [];
 $error = null;
 
-// VARIABEL TAMBAHAN UNTUK SUMMARY CARD LUNAS
 $total_lunas_bulan_ini = 0; 
 
-// Get laporan okupansi dari view
 try {
-    // 1. Ambil data laporan okupansi bulanan
+    //data laporan okupansi bulanan
     $stmt = $conn->query("
         SELECT * FROM v_laporan_okupansi 
         ORDER BY bulan DESC
@@ -18,8 +15,7 @@ try {
     ");
     $laporan_okupansi = $stmt->fetchAll();
     
-    // 2. Ambil total pendapatan berdasarkan pembayaran LUNAS bulan ini
-    // Logika: Jumlahkan semua kolom jumlah_bayar dari tabel pembayaran yang lunas di bulan ini (NOW())
+    //total pendapatan berdasarkan pembayaran LUNAS bulan ini
     $lunas_stmt = $conn->query("
         SELECT 
             SUM(p.jumlah) 
@@ -27,11 +23,11 @@ try {
         WHERE p.status_bayar = 'lunas'
         AND date_trunc('month', p.tgl_bayar) = date_trunc('month', NOW());
     ");
-    // Gunakan fetchColumn() karena hanya mengambil 1 nilai
+    //ambil 1 nilai
     $total_lunas_bulan_ini = $lunas_stmt->fetchColumn() ?? 0;
     
-    // 3. Get top guests
-    $top_guests_stmt = $conn->query("
+    //top tamu
+    $top_tamu_stmt = $conn->query("
         SELECT 
             t.nama_tamu,
             t.no_telp,
@@ -48,23 +44,23 @@ try {
         HAVING COUNT(r.id_reservasi) > 1
         ORDER BY total_reservasi DESC
     ");
-    $top_guests = $top_guests_stmt->fetchAll();
+    $top_tamu = $top_tamu_stmt->fetchAll();
     
-    // 4. Get revenue by room type
-    $revenue_by_type_stmt = $conn->query("
+    //pendapatan perkamar
+    $pendapatan_per_tipe_stmt = $conn->query("
         SELECT 
             tk.nama_tipe,
             COUNT(r.id_reservasi) as total_booking,
             SUM(r.tgl_checkout - r.tgl_checkin) as total_malam,
-            SUM(tk.harga_per_malam * (r.tgl_checkout - r.tgl_checkin)) as total_revenue
+            SUM(tk.harga_per_malam * (r.tgl_checkout - r.tgl_checkin)) as total_pendapatan
         FROM tipe_kamar tk
         LEFT JOIN kamar k ON tk.id_tipe = k.id_tipe
         LEFT JOIN reservasi r ON k.id_kamar = r.id_kamar
         WHERE r.status_reservasi IN ('check-in', 'selesai')
         GROUP BY tk.id_tipe, tk.nama_tipe
-        ORDER BY total_revenue DESC
+        ORDER BY total_pendapatan DESC
     ");
-    $revenue_by_type = $revenue_by_type_stmt->fetchAll();
+    $pendapatan_per_tipe = $pendapatan_per_tipe_stmt->fetchAll();
     
 } catch (PDOException $e) {
     $error = "Error mengambil data laporan: " . $e->getMessage();
@@ -76,23 +72,23 @@ try {
 
 <?php if ($error): ?>
 <div class="alert alert-danger alert-dismissible fade show">
-    <i class="bi bi-exclamation-triangle me-2"></i>
-    <?php echo htmlspecialchars($error); ?>
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <?php echo htmlspecialchars($error); ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 <?php endif; ?>
 
 <div class="row g-4 mb-4">
     <?php
-    $total_revenue = $total_lunas_bulan_ini; // MENGAMBIL TOTAL LUNAS SEKARANG
-    $total_bookings = 0;
-    $avg_okupansi = 0;
+    $total_pendapatan = $total_lunas_bulan_ini;
+    $total_booking = 0;
+    $rata_okupansi = 0;
     
-    // Gunakan Laporan Okupansi untuk Total Booking dan Okupansi (data yang tidak janggal)
+    //lap okupansi utk total booking & okupansi
     if (!empty($laporan_okupansi)) {
-        $current_month = $laporan_okupansi[0];
-        $total_bookings = $current_month['total_reservasi'] ?? 0;
-        $avg_okupansi = $current_month['tingkat_okupansi'] ?? 0;
+        $bulan_skrg = $laporan_okupansi[0];
+        $total_booking = $bulan_skrg['total_reservasi'] ?? 0;
+        $rata_okupansi = $bulan_skrg['tingkat_okupansi'] ?? 0;
     }
     ?>
     
@@ -100,7 +96,7 @@ try {
         <div class="card stat-card">
             <div class="card-body">
                 <h6 class="text-muted mb-2">Pendapatan Bulan Ini (Lunas)</h6>
-                <h3 class="mb-0 text-success"><?php echo format_rupiah($total_revenue); ?></h3>
+                <h3 class="mb-0 text-success"><?php echo format_rupiah($total_pendapatan); ?></h3>
             </div>
         </div>
     </div>
@@ -109,7 +105,7 @@ try {
         <div class="card stat-card">
             <div class="card-body">
                 <h6 class="text-muted mb-2">Total Booking Bulan Ini (Okupansi)</h6>
-                <h3 class="mb-0 text-primary"><?php echo $total_bookings; ?></h3>
+                <h3 class="mb-0 text-primary"><?php echo $total_booking; ?></h3>
             </div>
         </div>
     </div>
@@ -118,7 +114,7 @@ try {
         <div class="card stat-card">
             <div class="card-body">
                 <h6 class="text-muted mb-2">Tingkat Okupansi Bulan Ini</h6>
-                <h3 class="mb-0 text-info"><?php echo number_format($avg_okupansi, 2); ?>%</h3>
+                <h3 class="mb-0 text-info"><?php echo number_format($rata_okupansi, 2); ?>%</h3>
             </div>
         </div>
     </div>
@@ -187,8 +183,8 @@ try {
                                 Rata-rata: 
                                 <?php 
                                 $total_okupansi = array_sum(array_column($laporan_okupansi, 'tingkat_okupansi'));
-                                $avg_okupansi = count($laporan_okupansi) > 0 ? $total_okupansi / count($laporan_okupansi) : 0;
-                                echo number_format($avg_okupansi, 2); 
+                                $rata_okupansi = count($laporan_okupansi) > 0 ? $total_okupansi / count($laporan_okupansi) : 0;
+                                echo number_format($rata_okupansi, 2); 
                                 ?>%
                             </th>
                             <th><?php echo format_rupiah(array_sum(array_column($laporan_okupansi, 'total_pendapatan'))); ?></th>
@@ -217,7 +213,7 @@ try {
                 <h5 class="mb-0"><i class="bi bi-trophy me-2"></i>Tamu Paling Sering Menginap</h5>
             </div>
             <div class="card-body">
-                <?php if (!empty($top_guests)): ?>
+                <?php if (!empty($top_tamu)): ?>
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
@@ -232,19 +228,19 @@ try {
                             <tbody>
                                 <?php 
                                 $no = 1;
-                                foreach ($top_guests as $guest): 
+                                foreach ($top_tamu as $tamu): 
                                 ?>
                                 <tr>
                                     <td><?php echo $no++; ?></td>
                                     <td>
-                                        <strong><?php echo htmlspecialchars($guest['nama_tamu'] ?? 'N/A'); ?></strong><br>
-                                        <?php if (!empty($guest['no_telp'])): ?>
-                                            <small class="text-muted"><?php echo htmlspecialchars($guest['no_telp']); ?></small>
+                                        <strong><?php echo htmlspecialchars($tamu['nama_tamu'] ?? 'N/A'); ?></strong><br>
+                                        <?php if (!empty($tamu['no_telp'])): ?>
+                                            <small class="text-muted"><?php echo htmlspecialchars($tamu['no_telp']); ?></small>
                                         <?php endif; ?>
                                     </td>
-                                    <td><span class="badge bg-primary"><?php echo $guest['total_reservasi'] ?? 0; ?>x</span></td>
-                                    <td><?php echo $guest['total_malam'] ?? 0; ?> malam</td>
-                                    <td><strong><?php echo format_rupiah($guest['total_spending'] ?? 0); ?></strong></td>
+                                    <td><span class="badge bg-primary"><?php echo $tamu['total_reservasi'] ?? 0; ?>x</span></td>
+                                    <td><?php echo $tamu['total_malam'] ?? 0; ?> malam</td>
+                                    <td><strong><?php echo format_rupiah($tamu['total_spending'] ?? 0); ?></strong></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -266,7 +262,7 @@ try {
                 <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Pendapatan per Tipe Kamar (Okupansi)</h5>
             </div>
             <div class="card-body">
-                <?php if (!empty($revenue_by_type)): ?>
+                <?php if (!empty($pendapatan_per_tipe)): ?>
                     <div class="table-responsive">
                         <table class="table table-sm">
                             <thead>
@@ -274,25 +270,25 @@ try {
                                     <th>Tipe Kamar</th>
                                     <th>Total Booking</th>
                                     <th>Total Malam</th>
-                                    <th>Revenue</th>
+                                    <th>Pendapatan</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($revenue_by_type as $rev): ?>
+                                <?php foreach ($pendapatan_per_tipe as $pendapatan): ?>
                                 <tr>
-                                    <td><strong><?php echo htmlspecialchars($rev['nama_tipe'] ?? 'N/A'); ?></strong></td>
-                                    <td><?php echo $rev['total_booking'] ?? 0; ?></td>
-                                    <td><?php echo $rev['total_malam'] ?? 0; ?></td>
-                                    <td><strong><?php echo format_rupiah($rev['total_revenue'] ?? 0); ?></strong></td>
+                                    <td><strong><?php echo htmlspecialchars($pendapatan['nama_tipe'] ?? 'N/A'); ?></strong></td>
+                                    <td><?php echo $pendapatan['total_booking'] ?? 0; ?></td>
+                                    <td><?php echo $pendapatan['total_malam'] ?? 0; ?></td>
+                                    <td><strong><?php echo format_rupiah($pendapatan['total_pendapatan'] ?? 0); ?></strong></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
                             <tfoot class="table-secondary">
                                 <tr>
                                     <th>TOTAL</th>
-                                    <th><?php echo array_sum(array_column($revenue_by_type, 'total_booking')); ?></th>
-                                    <th><?php echo array_sum(array_column($revenue_by_type, 'total_malam')); ?></th>
-                                    <th><?php echo format_rupiah(array_sum(array_column($revenue_by_type, 'total_revenue'))); ?></th>
+                                    <th><?php echo array_sum(array_column($pendapatan_per_tipe, 'total_booking')); ?></th>
+                                    <th><?php echo array_sum(array_column($pendapatan_per_tipe, 'total_malam')); ?></th>
+                                    <th><?php echo format_rupiah(array_sum(array_column($pendapatan_per_tipe, 'total_pendapatan'))); ?></th>
                                 </tr>
                             </tfoot>
                         </table>

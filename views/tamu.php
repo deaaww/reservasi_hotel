@@ -1,8 +1,9 @@
 <?php
+$action = isset($_GET['action']) ? $_GET['action'] : '';
 $message = '';
 $message_type = '';
 
-// CREATE
+//create
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
     try {
         $nama = sanitize_input($_POST['nama_tamu']);
@@ -24,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
     }
 }
 
-// UPDATE
+//update
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
     try {
         $id = sanitize_input($_POST['id_tamu']);
@@ -47,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
     }
 }
 
-// DELETE
+//delete
 if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
     try {
         $stmt = $conn->prepare("DELETE FROM tamu WHERE id_tamu = ?");
@@ -60,10 +61,10 @@ if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id']))
     }
 }
 
-// READ with pagination
-$page_num = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
-$records_per_page = 10;
-$offset = ($page_num - 1) * $records_per_page;
+//read dgn pagination
+$no_hal = isset($_GET['no_hal']) ? (int)$_GET['no_hal'] : 1;
+$data_per_hal = 10;
+$offset = ($no_hal - 1) * $data_per_hal;
 $search = isset($_GET['search']) ? sanitize_input($_GET['search']) : '';
 
 $where = $search ? "WHERE nama_tamu ILIKE ? OR no_telp ILIKE ? OR email ILIKE ?" : "";
@@ -72,14 +73,15 @@ $params = $search ? ["%$search%", "%$search%", "%$search%"] : [];
 try {
     $count_stmt = $conn->prepare("SELECT COUNT(*) as total FROM tamu $where");
     $count_stmt->execute($params);
-    $total_records = $count_stmt->fetch()['total'];
-    $total_pages = ceil($total_records / $records_per_page);
+    $total_data = $count_stmt->fetch()['total'];
+    $total_hal = ceil($total_data / $data_per_hal);
     
-    $params[] = $records_per_page;
+    $params[] = $data_per_hal;
     $params[] = $offset;
     $stmt = $conn->prepare("SELECT * FROM tamu $where ORDER BY id_tamu ASC LIMIT ? OFFSET ?");
     $stmt->execute($params);
-    $tamu_list = $stmt->fetchAll();
+    $
+    list = $stmt->fetchAll();
 } catch (PDOException $e) {
     $error = $e->getMessage();
 }
@@ -89,7 +91,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
     $stmt = $conn->prepare("SELECT * FROM tamu WHERE id_tamu = ?");
     $stmt->execute([sanitize_input($_GET['id'])]);
     $edit_data = $stmt->fetch();
-}
+}      
 ?>
 
 <h1 class="page-title">Data Tamu</h1>
@@ -110,18 +112,18 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         </h5>
     </div>
     <div class="card-body">
-        <form method="POST" onsubmit="return validateTamuForm()">
+        <form method="POST" novalidate>
             <div class="row">
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                        <label class="form-label">Nama Lengkap</label>
                         <input type="text" class="form-control" name="nama_tamu" id="nama_tamu"
                             value="<?php echo $edit_data ? $edit_data['nama_tamu'] : ''; ?>" required>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">No. Telepon <span class="text-danger">*</span></label>
+                        <label class="form-label">No. Telepon</label>
                         <input type="tel" class="form-control" name="no_telp" id="no_telp"
                             value="<?php echo $edit_data ? $edit_data['no_telp'] : ''; ?>" required>
                     </div>
@@ -136,7 +138,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
                 <?php if (!$edit_data): ?>
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        <label class="form-label">Password</label>
                         <input type="password" class="form-control" name="password" required>
                     </div>
                 </div>
@@ -182,7 +184,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
 <div class="card table-card">
     <div class="card-header d-flex justify-content-between">
         <h5 class="mb-0"><i class="bi bi-people me-2"></i>Daftar Tamu</h5>
-        <span class="badge bg-primary"><?php echo $total_records; ?> Tamu</span>
+        <span class="badge bg-primary"><?php echo $total_data; ?> Tamu</span>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -220,12 +222,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
             </table>
         </div>
         
-        <?php if ($total_pages > 1): ?>
+        <?php if ($total_hal > 1): ?>
         <nav class="mt-4">
             <ul class="pagination justify-content-center">
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                <li class="page-item <?php echo $page_num == $i ? 'active' : ''; ?>">
-                    <a class="page-link" href="?page=tamu&page_num=<?php echo $i; ?>&search=<?php echo $search; ?>">
+                <?php for ($i = 1; $i <= $total_hal; $i++): ?>
+                <li class="page-item <?php echo $no_hal == $i ? 'active' : ''; ?>">
+                    <a class="page-link" href="?page=tamu&no_hal=<?php echo $i; ?>&search=<?php echo $search; ?>">
                         <?php echo $i; ?>
                     </a>
                 </li>
@@ -235,22 +237,3 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
         <?php endif; ?>
     </div>
 </div>
-
-<script>
-function validateTamuForm() {
-    const nama = document.getElementById('nama_tamu').value;
-    const telp = document.getElementById('no_telp').value;
-    
-    if (nama.trim().length < 3) {
-        alert('Nama minimal 3 karakter!');
-        return false;
-    }
-    
-    if (telp.length < 10) {
-        alert('Nomor telepon tidak valid!');
-        return false;
-    }
-    
-    return true;
-}
-</script>

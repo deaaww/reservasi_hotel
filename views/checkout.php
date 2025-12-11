@@ -2,18 +2,16 @@
 $message = '';
 $message_type = '';
 
-// Initialize variables
-$checkin_guests = [];
+$tamu_checkin = [];
 $error = null;
 
-// Handle Check-out Process using Stored Procedure
+//checkout dgn store procedure
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['checkout'])) {
     try {
         $conn->beginTransaction();
         
         $id_reservasi = sanitize_input($_POST['id_reservasi']);
         
-        // Call stored procedure for check-out
         $stmt = $conn->prepare("CALL proses_checkout(?)");
         $stmt->execute([$id_reservasi]);
         
@@ -29,14 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['checkout'])) {
     }
 }
 
-// Get check-in guests for check-out
+//tamu checkout
 try {
     $stmt = $conn->query("
         SELECT * FROM v_reservasi_detail 
         WHERE status_reservasi = 'check-in'
         ORDER BY tgl_checkout
     ");
-    $checkin_guests = $stmt->fetchAll();
+    $tamu_checkin = $stmt->fetchAll();
     
 } catch (PDOException $e) {
     $error = "Error mengambil data tamu: " . $e->getMessage();
@@ -67,7 +65,7 @@ try {
         <h5 class="mb-0"><i class="bi bi-box-arrow-right me-2"></i>Daftar Tamu untuk Check-out</h5>
     </div>
     <div class="card-body">
-        <?php if (!empty($checkin_guests)): ?>
+        <?php if (!empty($tamu_checkin)): ?>
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
@@ -84,45 +82,45 @@ try {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($checkin_guests as $guest): ?>
+                    <?php foreach ($tamu_checkin as $tamu): ?>
                     <?php
-                    $today = date('Y-m-d');
-                    $checkout_date = $guest['tgl_checkout'] ?? '';
-                    $is_due = (!empty($checkout_date) && $checkout_date <= $today);
-                    $row_class = $is_due ? 'table-warning' : '';
+                    $hari_ini = date('Y-m-d');
+                    $tgl_checkout = $tamu['tgl_checkout'] ?? '';
+                    $jatuh_tempo = (!empty($tgl_checkout) && $tgl_checkout <= $hari_ini);
+                    $baris_tabel = $jatuh_tempo ? 'table-warning' : '';
                     ?>
-                    <tr class="<?php echo $row_class; ?>">
-                        <td><strong>#<?php echo htmlspecialchars($guest['id_reservasi'] ?? 'N/A'); ?></strong></td>
+                    <tr class="<?php echo $baris_tabel; ?>">
+                        <td><strong>#<?php echo htmlspecialchars($tamu['id_reservasi'] ?? 'N/A'); ?></strong></td>
                         <td>
-                            <?php echo htmlspecialchars($guest['nama_tamu'] ?? 'N/A'); ?><br>
-                            <?php if (!empty($guest['no_telp'])): ?>
-                                <small class="text-muted"><?php echo htmlspecialchars($guest['no_telp']); ?></small>
+                            <?php echo htmlspecialchars($tamu['nama_tamu'] ?? 'N/A'); ?><br>
+                            <?php if (!empty($tamu['no_telp'])): ?>
+                                <small class="text-muted"><?php echo htmlspecialchars($tamu['no_telp']); ?></small>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <strong><?php echo htmlspecialchars($guest['nomor_kamar'] ?? 'N/A'); ?></strong><br>
-                            <small><?php echo htmlspecialchars($guest['nama_tipe'] ?? 'N/A'); ?></small>
+                            <strong><?php echo htmlspecialchars($tamu['nomor_kamar'] ?? 'N/A'); ?></strong><br>
+                            <small><?php echo htmlspecialchars($tamu['nama_tipe'] ?? 'N/A'); ?></small>
                         </td>
-                        <td><?php echo isset($guest['tgl_checkin']) ? format_tanggal($guest['tgl_checkin']) : 'N/A'; ?></td>
+                        <td><?php echo isset($tamu['tgl_checkin']) ? format_tanggal($tamu['tgl_checkin']) : 'N/A'; ?></td>
                         <td>
-                            <?php echo isset($guest['tgl_checkout']) ? format_tanggal($guest['tgl_checkout']) : 'N/A'; ?>
-                            <?php if ($is_due): ?>
+                            <?php echo isset($tamu['tgl_checkout']) ? format_tanggal($tamu['tgl_checkout']) : 'N/A'; ?>
+                            <?php if ($jatuh_tempo): ?>
                                 <br><span class="badge bg-warning">Jatuh Tempo</span>
                             <?php endif; ?>
                         </td>
                         <td>
                             <span class="badge bg-info">
-                                <?php echo isset($guest['lama_menginap']) ? $guest['lama_menginap'] . ' malam' : 'N/A'; ?>
+                                <?php echo isset($tamu['lama_menginap']) ? $tamu['lama_menginap'] . ' malam' : 'N/A'; ?>
                             </span>
                         </td>
                         <td>
-                            <strong><?php echo isset($guest['total_harga']) ? format_rupiah($guest['total_harga']) : 'N/A'; ?></strong>
+                            <strong><?php echo isset($tamu['total_harga']) ? format_rupiah($tamu['total_harga']) : 'N/A'; ?></strong>
                         </td>
-                        <td><?php echo isset($guest['status_bayar']) ? get_status_badge($guest['status_bayar']) : 'N/A'; ?></td>
+                        <td><?php echo isset($tamu['status_bayar']) ? status_badge($tamu['status_bayar']) : 'N/A'; ?></td>
                         <td>
                             <form method="POST" style="display:inline;" 
-                                  onsubmit="return confirm('Proses check-out untuk <?php echo addslashes($guest['nama_tamu'] ?? 'tamu'); ?>?\n\nCatatan: Pembayaran akan otomatis menjadi lunas.')">
-                                <input type="hidden" name="id_reservasi" value="<?php echo $guest['id_reservasi']; ?>">
+                                  onsubmit="return confirm('Proses check-out untuk <?php echo addslashes($tamu['nama_tamu'] ?? 'tamu'); ?>?\n\nCatatan: Pembayaran akan otomatis menjadi lunas.')">
+                                <input type="hidden" name="id_reservasi" value="<?php echo $tamu['id_reservasi']; ?>">
                                 <button type="submit" name="checkout" class="btn btn-danger btn-sm">
                                     <i class="bi bi-door-open me-1"></i>Check-out
                                 </button>

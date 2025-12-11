@@ -1,10 +1,9 @@
 <?php
-// Handle CRUD Operations
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 $message = '';
 $message_type = '';
 
-// CREATE
+//create
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
     try {
         $id_tipe = sanitize_input($_POST['id_tipe']);
@@ -26,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
     }
 }
 
-// UPDATE
+//update
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
     try {
         $id_kamar = sanitize_input($_POST['id_kamar']);
@@ -50,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
     }
 }
 
-// DELETE
+//delete
 if ($action == 'delete' && isset($_GET['id'])) {
     try {
         $id = sanitize_input($_GET['id']);
@@ -65,10 +64,10 @@ if ($action == 'delete' && isset($_GET['id'])) {
     }
 }
 
-// READ - Get all rooms with pagination
-$page_num = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
-$records_per_page = 10;
-$offset = ($page_num - 1) * $records_per_page;
+//read
+$no_hal = isset($_GET['no_hal']) ? (int)$_GET['no_hal'] : 1;
+$data_per_hal = 10;
+$offset = ($no_hal - 1) * $data_per_hal;
 
 $search = isset($_GET['search']) ? sanitize_input($_GET['search']) : '';
 $filter_status = isset($_GET['filter_status']) ? sanitize_input($_GET['filter_status']) : '';
@@ -88,7 +87,7 @@ if ($filter_status != '') {
 }
 
 try {
-    // Count total records
+    //hitung total data
     $count_stmt = $conn->prepare("
         SELECT COUNT(*) as total 
         FROM kamar k 
@@ -96,11 +95,11 @@ try {
         $where_clause
     ");
     $count_stmt->execute($params);
-    $total_records = $count_stmt->fetch()['total'];
-    $total_pages = ceil($total_records / $records_per_page);
+    $total_data = $count_stmt->fetch()['total'];
+    $total_hal = ceil($total_data / $data_per_hal);
     
-    // Get paginated data
-    $params[] = $records_per_page;
+    //ambil data sesuai halaman
+    $params[] = $data_per_hal;
     $params[] = $offset;
     
     $stmt = $conn->prepare("
@@ -109,12 +108,12 @@ try {
         JOIN tipe_kamar tk ON k.id_tipe = tk.id_tipe
         $where_clause
         ORDER BY k.nomor_kamar
-        LIMIT ? OFFSET ?
+        LIMIT ? offset ?
     ");
     $stmt->execute($params);
     $kamar_list = $stmt->fetchAll();
     
-    // Get tipe kamar for form
+    //daftar tipe kamar dropdown
     $tipe_stmt = $conn->query("SELECT * FROM tipe_kamar ORDER BY nama_tipe");
     $tipe_kamar_list = $tipe_stmt->fetchAll();
     
@@ -122,7 +121,7 @@ try {
     $error = $e->getMessage();
 }
 
-// Get data for edit
+//data kamar untuk edit
 $edit_data = null;
 if ($action == 'edit' && isset($_GET['id'])) {
     $stmt = $conn->prepare("SELECT * FROM kamar WHERE id_kamar = ?");
@@ -140,7 +139,7 @@ if ($action == 'edit' && isset($_GET['id'])) {
 </div>
 <?php endif; ?>
 
-<!-- Form Section -->
+<!-- form -->
 <div class="card table-card mb-4">
     <div class="card-header">
         <h5 class="mb-0">
@@ -149,11 +148,11 @@ if ($action == 'edit' && isset($_GET['id'])) {
         </h5>
     </div>
     <div class="card-body">
-        <form method="POST" onsubmit="return validateForm()">
+        <form method="POST" novalidate>
             <div class="row">
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Tipe Kamar <span class="text-danger">*</span></label>
+                        <label class="form-label">Tipe Kamar</label>
                         <select class="form-select" name="id_tipe" id="id_tipe" required>
                             <option value="">Pilih Tipe Kamar</option>
                             <?php foreach ($tipe_kamar_list as $tipe): ?>
@@ -168,7 +167,7 @@ if ($action == 'edit' && isset($_GET['id'])) {
                 
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Nomor Kamar <span class="text-danger">*</span></label>
+                        <label class="form-label">Nomor Kamar</label>
                         <input type="text" class="form-control" name="nomor_kamar" id="nomor_kamar"
                             value="<?php echo $edit_data ? $edit_data['nomor_kamar'] : ''; ?>" 
                             placeholder="Contoh: 201" required>
@@ -177,7 +176,7 @@ if ($action == 'edit' && isset($_GET['id'])) {
                 
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Lantai <span class="text-danger">*</span></label>
+                        <label class="form-label">Lantai</label>
                         <input type="number" class="form-control" name="lantai" id="lantai"
                             value="<?php echo $edit_data ? $edit_data['lantai'] : ''; ?>" 
                             min="1" max="20" required>
@@ -186,7 +185,7 @@ if ($action == 'edit' && isset($_GET['id'])) {
                 
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Status <span class="text-danger">*</span></label>
+                        <label class="form-label">Status</label>
                         <select class="form-select" name="status" id="status" required>
                             <option value="tersedia" <?php echo ($edit_data && $edit_data['status'] == 'tersedia') ? 'selected' : ''; ?>>Tersedia</option>
                             <option value="terisi" <?php echo ($edit_data && $edit_data['status'] == 'terisi') ? 'selected' : ''; ?>>Terisi</option>
@@ -213,7 +212,7 @@ if ($action == 'edit' && isset($_GET['id'])) {
     </div>
 </div>
 
-<!-- Filter and Search -->
+<!-- filter & search -->
 <div class="card table-card mb-4">
     <div class="card-body">
         <form method="GET" class="row g-3">
@@ -241,11 +240,11 @@ if ($action == 'edit' && isset($_GET['id'])) {
     </div>
 </div>
 
-<!-- Data Table -->
+<!-- tabel data kamar -->
 <div class="card table-card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Daftar Kamar</h5>
-        <span class="badge bg-primary"><?php echo $total_records; ?> Kamar</span>
+        <span class="badge bg-primary"><?php echo $total_data; ?> Kamar</span>
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -272,7 +271,7 @@ if ($action == 'edit' && isset($_GET['id'])) {
                             <td>Lantai <?php echo $kamar['lantai']; ?></td>
                             <td><?php echo format_rupiah($kamar['harga_per_malam']); ?></td>
                             <td><?php echo $kamar['kapasitas']; ?> orang</td>
-                            <td><?php echo get_status_badge($kamar['status']); ?></td>
+                            <td><?php echo status_badge($kamar['status']); ?></td>
                             <td>
                                 <a href="?page=kamar&action=edit&id=<?php echo $kamar['id_kamar']; ?>" 
                                    class="btn btn-sm btn-warning btn-action">
@@ -298,26 +297,26 @@ if ($action == 'edit' && isset($_GET['id'])) {
             </table>
         </div>
         
-        <!-- Pagination -->
-        <?php if ($total_pages > 1): ?>
+        <!-- pagination -->
+        <?php if ($total_hal > 1): ?>
         <nav class="mt-4">
             <ul class="pagination justify-content-center">
-                <li class="page-item <?php echo $page_num <= 1 ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="?page=kamar&page_num=<?php echo $page_num - 1; ?>&search=<?php echo $search; ?>&filter_status=<?php echo $filter_status; ?>">
+                <li class="page-item <?php echo $no_hal <= 1 ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?page=kamar&no_hal=<?php echo $no_hal - 1; ?>&search=<?php echo $search; ?>&filter_status=<?php echo $filter_status; ?>">
                         Previous
                     </a>
                 </li>
                 
-                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                <li class="page-item <?php echo $page_num == $i ? 'active' : ''; ?>">
-                    <a class="page-link" href="?page=kamar&page_num=<?php echo $i; ?>&search=<?php echo $search; ?>&filter_status=<?php echo $filter_status; ?>">
+                <?php for ($i = 1; $i <= $total_hal; $i++): ?>
+                <li class="page-item <?php echo $no_hal == $i ? 'active' : ''; ?>">
+                    <a class="page-link" href="?page=kamar&no_hal=<?php echo $i; ?>&search=<?php echo $search; ?>&filter_status=<?php echo $filter_status; ?>">
                         <?php echo $i; ?>
                     </a>
                 </li>
                 <?php endfor; ?>
                 
-                <li class="page-item <?php echo $page_num >= $total_pages ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="?page=kamar&page_num=<?php echo $page_num + 1; ?>&search=<?php echo $search; ?>&filter_status=<?php echo $filter_status; ?>">
+                <li class="page-item <?php echo $no_hal >= $total_hal ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?page=kamar&no_hal=<?php echo $no_hal + 1; ?>&search=<?php echo $search; ?>&filter_status=<?php echo $filter_status; ?>">
                         Next
                     </a>
                 </li>
@@ -326,22 +325,3 @@ if ($action == 'edit' && isset($_GET['id'])) {
         <?php endif; ?>
     </div>
 </div>
-
-<script>
-function validateForm() {
-    const nomorKamar = document.getElementById('nomor_kamar').value;
-    const lantai = document.getElementById('lantai').value;
-    
-    if (nomorKamar.trim() === '') {
-        alert('Nomor kamar harus diisi!');
-        return false;
-    }
-    
-    if (lantai < 1 || lantai > 20) {
-        alert('Lantai harus antara 1-20!');
-        return false;
-    }
-    
-    return true;
-}
-</script>

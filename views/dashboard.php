@@ -110,11 +110,11 @@
 </div>
 
 <?php
-// Inisialisasi variabel
-$recent_reservations = [];
+
+$reservasi_terbaru = [];
 $error = null;
 
-// Get recent reservations
+//reservasi terbaru
 try {
     if (isset($conn)) {
         $stmt = $conn->query("
@@ -122,11 +122,10 @@ try {
             ORDER BY tgl_reservasi DESC 
             LIMIT 5
         ");
-        $recent_reservations = $stmt->fetchAll();
+        $reservasi_terbaru = $stmt->fetchAll();
     }
 } catch (PDOException $e) {
     $error = $e->getMessage();
-    // Log error atau tampilkan pesan error yang sesuai
     error_log("Database error: " . $e->getMessage());
 }
 ?>
@@ -141,7 +140,7 @@ try {
                 <i class="bi bi-exclamation-triangle me-2"></i>
                 Terjadi kesalahan saat mengambil data: <?php echo htmlspecialchars($error); ?>
             </div>
-        <?php elseif (empty($recent_reservations)): ?>
+        <?php elseif (empty($reservasi_terbaru)): ?>
             <div class="text-center text-muted py-4">
                 <i class="bi bi-calendar-x fs-1"></i>
                 <p class="mt-2">Tidak ada data reservasi</p>
@@ -161,18 +160,18 @@ try {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($recent_reservations as $res): ?>
+                        <?php foreach ($reservasi_terbaru as $reserv): ?>
                         <tr>
-                            <td>#<?php echo htmlspecialchars($res['id_reservasi'] ?? 'N/A'); ?></td>
-                            <td><?php echo htmlspecialchars($res['nama_tamu'] ?? 'N/A'); ?></td>
+                            <td>#<?php echo htmlspecialchars($reserv['id_reservasi'] ?? 'N/A'); ?></td>
+                            <td><?php echo htmlspecialchars($reserv['nama_tamu'] ?? 'N/A'); ?></td>
                             <td>
-                                <?php echo htmlspecialchars($res['nomor_kamar'] ?? 'N/A'); ?> - 
-                                <?php echo htmlspecialchars($res['nama_tipe'] ?? 'N/A'); ?>
+                                <?php echo htmlspecialchars($reserv['nomor_kamar'] ?? 'N/A'); ?> - 
+                                <?php echo htmlspecialchars($reserv['nama_tipe'] ?? 'N/A'); ?>
                             </td>
-                            <td><?php echo isset($res['tgl_checkin']) ? date('d/m/Y', strtotime($res['tgl_checkin'])) : 'N/A'; ?></td>
-                            <td><?php echo isset($res['tgl_checkout']) ? date('d/m/Y', strtotime($res['tgl_checkout'])) : 'N/A'; ?></td>
-                            <td><?php echo isset($res['total_harga']) ? format_rupiah($res['total_harga']) : 'N/A'; ?></td>
-                            <td><?php echo isset($res['status_reservasi']) ? get_status_badge($res['status_reservasi']) : 'N/A'; ?></td>
+                            <td><?php echo isset($reserv['tgl_checkin']) ? date('d/m/Y', strtotime($reserv['tgl_checkin'])) : 'N/A'; ?></td>
+                            <td><?php echo isset($reserv['tgl_checkout']) ? date('d/m/Y', strtotime($reserv['tgl_checkout'])) : 'N/A'; ?></td>
+                            <td><?php echo isset($reserv['total_harga']) ? format_rupiah($reserv['total_harga']) : 'N/A'; ?></td>
+                            <td><?php echo isset($reserv['status_reservasi']) ? status_badge($reserv['status_reservasi']) : 'N/A'; ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>

@@ -2,7 +2,7 @@
 $message = '';
 $message_type = '';
 
-// Update payment
+//update
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['bayar'])) {
     try {
         $id_pembayaran = sanitize_input($_POST['id_pembayaran']);
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['bayar'])) {
     }
 }
 
-// READ pembayaran
+//read
 $filter = isset($_GET['filter']) ? sanitize_input($_GET['filter']) : '';
 $where = $filter ? "WHERE p.status_bayar = ?" : "";
 $params = $filter ? [$filter] : [];
@@ -82,7 +82,7 @@ try {
     </div>
 </div>
 
-<!-- Table -->
+<!-- tabel -->
 <div class="card table-card">
     <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-credit-card me-2"></i>Daftar Pembayaran</h5>
@@ -116,7 +116,7 @@ try {
                         <td><strong><?php echo format_rupiah($bayar['jumlah']); ?></strong></td>
                         <td><?php echo $bayar['metode_bayar'] ?: '-'; ?></td>
                         <td><?php echo $bayar['tgl_bayar'] ? date('d/m/Y H:i', strtotime($bayar['tgl_bayar'])) : '-'; ?></td>
-                        <td><?php echo get_status_badge($bayar['status_bayar']); ?></td>
+                        <td><?php echo status_badge($bayar['status_bayar']); ?></td>
                         <td>
                             <?php if ($bayar['status_bayar'] == 'belum lunas'): ?>
                             <button type="button" class="btn btn-sm btn-success" 
@@ -125,7 +125,7 @@ try {
                                 <i class="bi bi-cash"></i> Bayar
                             </button>
                             
-                            <!-- Modal -->
+                            <!-- modal -->
                             <div class="modal fade" id="bayarModal<?php echo $bayar['id_pembayaran']; ?>">
                                 <div class="modal-dialog">
                                     <div class="modal-content">

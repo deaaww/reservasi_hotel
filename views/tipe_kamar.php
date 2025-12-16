@@ -106,7 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
         ");
         $stmt->execute([$nama, $harga, $kapasitas, $deskripsi, $foto, $id]);
 
-        $conn->prepare("DELETE FROM tipe_fasilitas WHERE id_tipe=?")->execute([$id]);
+        $conn->prepare("
+            DELETE FROM tipe_fasilitas WHERE id_tipe=?
+        ")->execute([$id]);
 
         if (!empty($_POST['fasilitas'])) {
             foreach ($_POST['fasilitas'] as $f) {
@@ -142,8 +144,13 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit') {
     $pilih_fasilitas = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
-$fasilitas = $conn->query("SELECT * FROM fasilitas ORDER BY kategori, nama_fasilitas")->fetchAll();
-$tipe_list = $conn->query("SELECT * FROM tipe_kamar ORDER BY id_tipe DESC")->fetchAll();
+$fasilitas = $conn->query("
+    SELECT * FROM fasilitas ORDER BY kategori, nama_fasilitas
+")->fetchAll();
+
+$tipe_list = $conn->query("
+    SELECT * FROM tipe_kamar ORDER BY id_tipe DESC
+")->fetchAll();
 ?>
 
 <h2 class="page-title">Tipe Kamar</h2>

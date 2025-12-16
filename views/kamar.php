@@ -12,7 +12,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['tambah'])) {
         $status = sanitize_input($_POST['status']);
         
         $stmt = $conn->prepare("
-            INSERT INTO kamar (id_tipe, nomor_kamar, lantai, status) 
+            INSERT INTO kamar (
+                id_tipe, 
+                nomor_kamar, 
+                lantai,
+                status
+            ) 
             VALUES (?, ?, ?, ?)
         ");
         $stmt->execute([$id_tipe, $nomor_kamar, $lantai, $status]);
@@ -53,7 +58,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
 if ($action == 'delete' && isset($_GET['id'])) {
     try {
         $id = sanitize_input($_GET['id']);
-        $stmt = $conn->prepare("DELETE FROM kamar WHERE id_kamar = ?");
+        
+        $stmt = $conn->prepare("
+            DELETE FROM kamar WHERE id_kamar = ?
+        ");
         $stmt->execute([$id]);
         
         $message = "Kamar berhasil dihapus!";

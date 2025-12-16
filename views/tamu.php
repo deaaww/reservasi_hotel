@@ -51,7 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update'])) {
 //delete
 if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
     try {
-        $stmt = $conn->prepare("DELETE FROM tamu WHERE id_tamu = ?");
+        $stmt = $conn->prepare("
+            DELETE FROM tamu WHERE id_tamu = ?
+        ");
         $stmt->execute([sanitize_input($_GET['id'])]);
         $message = "Tamu berhasil dihapus!";
         $message_type = "success";
@@ -71,14 +73,20 @@ $where = $search ? "WHERE nama_tamu ILIKE ? OR no_telp ILIKE ? OR email ILIKE ?"
 $params = $search ? ["%$search%", "%$search%", "%$search%"] : [];
 
 try {
-    $count_stmt = $conn->prepare("SELECT COUNT(*) as total FROM tamu $where");
+    $count_stmt = $conn->prepare("
+        SELECT COUNT(*) as total FROM tamu $where
+    ");
     $count_stmt->execute($params);
     $total_data = $count_stmt->fetch()['total'];
     $total_hal = ceil($total_data / $data_per_hal);
     
     $params[] = $data_per_hal;
     $params[] = $offset;
-    $stmt = $conn->prepare("SELECT * FROM tamu $where ORDER BY id_tamu ASC LIMIT ? OFFSET ?");
+    $stmt = $conn->prepare("
+        SELECT * FROM tamu $where 
+        ORDER BY id_tamu ASC
+        LIMIT ? OFFSET ?"
+    );
     $stmt->execute($params);
     $tamu_list = $stmt->fetchAll();
 } catch (PDOException $e) {

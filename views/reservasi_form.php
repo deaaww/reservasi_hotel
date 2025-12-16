@@ -14,7 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
         $jumlah_tamu = sanitize_input($_POST['jumlah_tamu']);
         
         $stmt = $conn->prepare("
-            INSERT INTO reservasi (id_tamu, id_kamar, tgl_checkin, tgl_checkout, jumlah_tamu, status_reservasi, tgl_reservasi)
+            INSERT INTO reservasi (
+                id_tamu,id_kamar,tgl_checkin,tgl_checkout,jumlah_tamu,
+                status_reservasi,tgl_reservasi
+            )
             VALUES (?, ?, ?, ?, ?, 'pending', CURRENT_TIMESTAMP)
             RETURNING id_reservasi
         ");
@@ -22,7 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
         $id_reservasi = $stmt->fetch()['id_reservasi'];
         
         //hitung total
-        $total_stmt = $conn->prepare("SELECT hitung_total_reservasi(?) as total");
+        $total_stmt = $conn->prepare("
+            SELECT hitung_total_reservasi(?) as total
+        ");
         $total_stmt->execute([$id_reservasi]);
         $total = $total_stmt->fetch()['total'];
         
@@ -46,10 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['buat_reservasi'])) {
 
 try {
     //kamar
-    $kamar_tersedia = $conn->query("SELECT * FROM v_kamar_tersedia ORDER BY nama_tipe, nomor_kamar")->fetchAll();
+    $kamar_tersedia = $conn->query("
+        SELECT * FROM v_kamar_tersedia
+        ORDER BY nama_tipe, nomor_kamar
+    ")->fetchAll();
     
     //tamu
-    $tamu = $conn->query("SELECT * FROM tamu ORDER BY nama_tamu")->fetchAll();
+    $tamu = $conn->query("
+        SELECT * FROM tamu
+        ORDER BY nama_tamu
+    ")->fetchAll();
     
 } catch (PDOException $e) {
     $error = $e->getMessage();

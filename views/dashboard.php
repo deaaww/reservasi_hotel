@@ -119,7 +119,7 @@ try {
     if (isset($conn)) {
         $stmt = $conn->query("
             SELECT * FROM v_reservasi_detail 
-            ORDER BY tgl_reservasi DESC 
+            ORDER BY tgl_checkin DESC 
             LIMIT 5
         ");
         $reservasi_terbaru = $stmt->fetchAll();

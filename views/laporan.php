@@ -4,7 +4,7 @@ $top_tamu = [];
 $pendapatan_per_tipe = [];
 $error = null;
 
-$total_lunas_bulan_ini = 0; 
+//$total_lunas_bulan_ini = 0; 
 
 try {
     //data laporan okupansi bulanan
@@ -15,23 +15,11 @@ try {
     ");
     $laporan_okupansi = $stmt->fetchAll();
     
-    //total pendapatan berdasarkan pembayaran LUNAS bulan ini
-    $lunas_stmt = $conn->query("
-        SELECT 
-            SUM(p.jumlah) 
-        FROM pembayaran p
-        WHERE p.status_bayar = 'lunas'
-        AND date_trunc('month', p.tgl_bayar) = date_trunc('month', NOW());
-    ");
-    //ambil 1 nilai
-    $total_lunas_bulan_ini = $lunas_stmt->fetchColumn() ?? 0;
-    
     //top tamu
     $top_tamu_stmt = $conn->query("
         SELECT 
             t.nama_tamu,
             t.no_telp,
-            t.email,
             COUNT(r.id_reservasi) as total_reservasi,
             SUM(r.tgl_checkout - r.tgl_checkin) as total_malam,
             SUM(tk.harga_per_malam * (r.tgl_checkout - r.tgl_checkin)) as total_spending
@@ -80,22 +68,24 @@ try {
 
 <div class="row g-4 mb-4">
     <?php
-    $total_pendapatan = $total_lunas_bulan_ini;
+    $total_pendapatan = 0;
     $total_booking = 0;
     $rata_okupansi = 0;
     
-    //lap okupansi utk total booking & okupansi
+    //lap okupansi utk total pendapatan, booking & okupansi
     if (!empty($laporan_okupansi)) {
-        $bulan_skrg = $laporan_okupansi[0];
-        $total_booking = $bulan_skrg['total_reservasi'] ?? 0;
-        $rata_okupansi = $bulan_skrg['tingkat_okupansi'] ?? 0;
+        $bulan_akhir = $laporan_okupansi[0];
+
+        $total_pendapatan = $bulan_akhir['total_pendapatan'] ?? 0;
+        $total_booking = $bulan_akhir['total_reservasi'] ?? 0;
+        $rata_okupansi = $bulan_akhir['tingkat_okupansi'] ?? 0;
     }
     ?>
     
     <div class="col-md-4">
         <div class="card stat-card">
             <div class="card-body">
-                <h6 class="text-muted mb-2">Pendapatan Bulan Ini (Lunas)</h6>
+                <h6 class="text-muted mb-2">Pendapatan Bulan Terakhir</h6>
                 <h3 class="mb-0 text-success"><?php echo format_rupiah($total_pendapatan); ?></h3>
             </div>
         </div>
@@ -104,8 +94,8 @@ try {
     <div class="col-md-4">
         <div class="card stat-card">
             <div class="card-body">
-                <h6 class="text-muted mb-2">Total Booking Bulan Ini (Okupansi)</h6>
-                <h3 class="mb-0 text-primary"><?php echo $total_booking; ?></h3>
+                <h6 class="text-muted mb-2">Total Booking Bulan Terakhir</h6>
+                <h3 class="mb-0 text-primary"><?php echo ($total_booking); ?></h3>
             </div>
         </div>
     </div>
@@ -113,7 +103,7 @@ try {
     <div class="col-md-4">
         <div class="card stat-card">
             <div class="card-body">
-                <h6 class="text-muted mb-2">Tingkat Okupansi Bulan Ini</h6>
+                <h6 class="text-muted mb-2">Tingkat Okupansi Bulan Terakhir</h6>
                 <h3 class="mb-0 text-info"><?php echo number_format($rata_okupansi, 2); ?>%</h3>
             </div>
         </div>
@@ -135,7 +125,7 @@ try {
                             <th>Kamar Terpakai</th>
                             <th>Total Kamar</th>
                             <th>Tingkat Okupansi</th>
-                            <th>Total Pendapatan (Okupansi)</th>
+                            <th>Total Pendapatan</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -163,10 +153,14 @@ try {
                             <td><?php echo $lap['kamar_terpakai'] ?? 0; ?></td>
                             <td><?php echo $lap['total_kamar'] ?? 0; ?></td>
                             <td>
-                                <div class="progress" style="height: 20px;">
-                                    <div class="progress-bar bg-info" role="progressbar" 
-                                            style="width: <?php echo min($lap['tingkat_okupansi'] ?? 0, 100); ?>%">
-                                        <?php echo number_format($lap['tingkat_okupansi'] ?? 0, 2); ?>%
+                                <?php
+                                $okupansi = $lap['tingkat_okupansi'] ?? 0;
+                                if ($okupansi > 100) $okupansi = 100;
+                                ?>
+
+                                <div class="progress" style="height:18px">
+                                    <div class="progress-bar bg-info" style="width: <?= $okupansi ?>%">
+                                        <?= number_format($okupansi, 2) ?>%
                                     </div>
                                 </div>
                             </td>

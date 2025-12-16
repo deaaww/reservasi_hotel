@@ -6,7 +6,8 @@ require_once 'functions/function.php';
 $db = new Database();
 $conn = $db->connect();
 
-$hal = isset($_GET['hal']) ? sanitize_input($_GET['hal']) : 'dashboard';
+$hal = isset($_GET['page']) ? sanitize_input($_GET['page']) : 'dashboard';
+$page = $hal;
 
 //statistik dashboard
 if ($hal == 'dashboard') {

@@ -80,8 +80,7 @@ try {
     $params[] = $offset;
     $stmt = $conn->prepare("SELECT * FROM tamu $where ORDER BY id_tamu ASC LIMIT ? OFFSET ?");
     $stmt->execute($params);
-    $
-    list = $stmt->fetchAll();
+    $tamu_list = $stmt->fetchAll();
 } catch (PDOException $e) {
     $error = $e->getMessage();
 }

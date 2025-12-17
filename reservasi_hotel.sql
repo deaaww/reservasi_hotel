@@ -447,11 +447,6 @@ select
     (select count(*) from reservasi where status_reservasi = 'check-in') as tamu_checkin,
     (select count(*) from tamu) as total_tamu,
 
-    (select coalesce(sum(p.jumlah), 0)
-    from pembayaran p
-    where p.status_bayar = 'lunas'
-    	and date_trunc('month', p.tgl_bayar) = date_trunc('month', current_date)) as pendapatan_bulan_ini,
-
     current_timestamp as last_refresh;
 
 refresh materialized view mv_statistik_hotel;

@@ -2,9 +2,7 @@
 $laporan_okupansi = [];
 $top_tamu = [];
 $pendapatan_per_tipe = [];
-$error = null;
-
-//$total_lunas_bulan_ini = 0; 
+$error = null; 
 
 try {
     //data laporan okupansi bulanan

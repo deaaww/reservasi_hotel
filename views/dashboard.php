@@ -1,3 +1,28 @@
+<?php
+$laporan_okupansi = [];
+$total_pendapatan = 0;
+$bulan_akhir = '-';
+
+try {
+    $stmt = $conn->query("
+        SELECT * 
+        FROM v_laporan_okupansi
+        ORDER BY bulan DESC
+        LIMIT 1
+    ");
+    $laporan_okupansi = $stmt->fetch();
+
+    if ($laporan_okupansi) {
+        $total_pendapatan = $laporan_okupansi['total_pendapatan'] ?? 0;
+
+        $dt = new DateTime($laporan_okupansi['bulan'], new DateTimeZone('Asia/Jakarta'));
+        $bulan_akhir = $dt->format('F Y');
+    }
+} catch (PDOException $e) {
+    error_log("Dashboard okupansi error: " . $e->getMessage());
+}
+?>
+
 <h1 class="page-title">Dashboard</h1>
 
 <div class="row g-4 mb-4">
@@ -95,15 +120,10 @@
         <div class="card stat-card">
             <div class="card-body">
                 <h6 class="text-muted mb-3">
-                    <i class="bi bi-cash-stack me-2"></i>Pendapatan Bulan Ini
+                    <i class="bi bi-cash-stack me-2"></i>Pendapatan Bulan Terakhir
                 </h6>
-                <h2 class="mb-0 text-success">
-                    <?php echo format_rupiah(isset($stats['pendapatan_bulan_ini']) ? $stats['pendapatan_bulan_ini'] : 0); ?>
-                </h2>
-                <small class="text-muted">
-                    <i class="bi bi-clock me-1"></i>
-                    Update terakhir: <?php echo date('d M Y H:i', isset($stats['last_refresh']) ? strtotime($stats['last_refresh']) : time()); ?>
-                </small>
+                <h2 class="mb-0 text-success"><?php echo format_rupiah($total_pendapatan); ?></h2>
+                <small class="text-muted">Berdasarkan check-in • <?php echo $bulan_akhir; ?></small>
             </div>
         </div>
     </div>
